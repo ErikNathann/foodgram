@@ -52,7 +52,7 @@ class Base62Field:
 
 class UserViewSet(DjoserUserViewSet):
     """
-    ViewSet для работы с пользователями. 
+    ViewSet для работы с пользователями.
     Включает методы для получения и изменения информации о пользователе.
     """
     queryset = User.objects.all().order_by('username')
@@ -468,7 +468,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
 
         elif request.method == 'DELETE':
-            favorite = Favorite.objects.filter(user=user, recipe=recipe).first()
+            favorite = Favorite.objects.filter(
+                user=user,
+                recipe=recipe
+            ).first()
             if not favorite:
                 return Response(
                     {'detail': 'Recipe is not in favorites'},
