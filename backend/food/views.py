@@ -1,32 +1,28 @@
-import uuid
 import base64
 import csv
+import uuid
 from io import StringIO
 
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
 from django.shortcuts import redirect
-
-from rest_framework import viewsets, permissions, status
+from djoser.views import UserViewSet as DjoserUserViewSet
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from rest_framework.decorators import action
-
-from djoser.views import UserViewSet as DjoserUserViewSet
-
 from users.models import Follow
-from users.serializers import FollowSerializer, CustomUserSerializer
+from users.serializers import CustomUserSerializer, FollowSerializer
 
-from .models import Tag, Ingredient, Recipe, Favorite, ShoppingCart
-from .serializers import (
-    TagSerializer, IngredientSerializer, RecipeWriteSerializer,
-    FavoriteSerializer, ShoppingCartSerializer, RecipeReadSerializer,
-)
-from .permissions import IsAuthorOrReadOnly
+from .models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 from .paginations import CustomPagination
+from .permissions import IsAuthorOrReadOnly
+from .serializers import (FavoriteSerializer, IngredientSerializer,
+                          RecipeReadSerializer, RecipeWriteSerializer,
+                          ShoppingCartSerializer, TagSerializer)
 
 User = get_user_model()
 BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
