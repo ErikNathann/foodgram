@@ -1,4 +1,5 @@
 import json
+
 from food.models import Ingredient
 
 
