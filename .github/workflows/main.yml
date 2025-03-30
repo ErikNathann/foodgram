@@ -100,6 +100,10 @@ jobs:
         target: "foodgram"
     - name: Executing remote ssh commands to deploy
       uses: appleboy/ssh-action@master
+      env:
+        DJANGO_SUPERUSER_USERNAME: ${{ secrets.SUPERUSER_NAME }}
+        DJANGO_SUPERUSER_EMAIL: ${{ secrets.SUPERUSER_EMAIL }}
+        DJANGO_SUPERUSER_PASSWORD: ${{ secrets.SUPERUSER_PASSWORD }}
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USER }}
@@ -114,7 +118,4 @@ jobs:
           sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic
           sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
           sudo docker compose -f docker-compose.production.yml exec backend python manage.py createsuperuser --noinput --username ${DJANGO_SUPERUSER_USERNAME} --email ${DJANGO_SUPERUSER_EMAIL} || true
-      env:
-        DJANGO_SUPERUSER_USERNAME: ${{ secrets.SUPERUSER_NAME }}
-        DJANGO_SUPERUSER_EMAIL: ${{ secrets.SUPERUSER_EMAIL }}
-        DJANGO_SUPERUSER_PASSWORD: ${{ secrets.SUPERUSER_PASSWORD }}
+      
