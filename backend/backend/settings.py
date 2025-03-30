@@ -9,11 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-default-secret-key')
 
-DEBUG = True  # os.getenv('DEBUG', 'False')
+DEBUG = os.getenv('DEBUG', 'False')
 
-# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
-ALLOWED_HOSTS = ['localhost', '89.169.163.72', 'erikfoodgram.zapto.org', '127.0.0.1']
+# ALLOWED_HOSTS = ['localhost', '89.169.163.72', 'erikfoodgram.zapto.org', '127.0.0.1']
 
 INSTALLED_APPS = [
     'food.apps.FoodConfig',
