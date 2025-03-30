@@ -11,7 +11,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-default-secret-key')
 
 DEBUG = os.getenv('DEBUG', 'False')
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 ALLOWED_HOSTS = ['localhost', '89.169.163.72', 'erikfoodgram.zapto.org', '127.0.0.1']
 
