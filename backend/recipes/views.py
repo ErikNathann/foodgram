@@ -14,12 +14,12 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
+from core.paginations import CustomPagination
+from core.permissions import IsAuthorOrReadOnly
 from users.models import Follow
 from users.serializers import CustomUserSerializer, FollowSerializer
 
 from .models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
-from .paginations import CustomPagination
-from .permissions import IsAuthorOrReadOnly
 from .serializers import (FavoriteSerializer, IngredientSerializer,
                           RecipeReadSerializer, RecipeWriteSerializer,
                           ShoppingCartSerializer, TagSerializer)
@@ -75,43 +75,48 @@ class UserViewSet(DjoserUserViewSet):
 
     @action(
         detail=False,
-        methods=['put', 'delete'],
+        methods=['put'],
         permission_classes=[permissions.IsAuthenticated],
         url_path='me/avatar'
     )
-    def avatar(self, request):
+    def upload_avatar(self, request):
         """
-        Обрабатывает загрузку и удаление аватара пользователя.
+        Обрабатывает загрузку аватара пользователя.
         """
         user = request.user
-        if request.method == 'PUT':
-            avatar_data = request.data.get('avatar')
-            if not avatar_data:
-                return Response(
-                    {'avatar': ['Это поле обязательно.']},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            if user.avatar:
-                user.avatar.delete()
-            fmt, imgstr = avatar_data.split(';base64,')
-            ext = fmt.split('/')[-1]
-            data = ContentFile(
-                base64.b64decode(imgstr),
-                name=f"{uuid.uuid4()}.{ext}"
-            )
-            user.avatar.save(data.name, data, save=True)
+        avatar_data = request.data.get('avatar')
+        if not avatar_data:
             return Response(
-                {'avatar': request.build_absolute_uri(user.avatar.url)},
-                status=status.HTTP_200_OK
+                {'avatar': ['Это поле обязательно.']},
+                status=status.HTTP_400_BAD_REQUEST
             )
-        else:
-            if user.avatar:
-                user.avatar.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            return Response(
-                {'detail': 'Аватар отсутствует.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        if user.avatar:
+            user.avatar.delete()
+        fmt, imgstr = avatar_data.split(';base64,')
+        ext = fmt.split('/')[-1]
+        data = ContentFile(
+            base64.b64decode(imgstr),
+            name=f"{uuid.uuid4()}.{ext}"
+        )
+        user.avatar.save(data.name, data, save=True)
+        return Response(
+            {'avatar': request.build_absolute_uri(user.avatar.url)},
+            status=status.HTTP_200_OK
+        )
+
+    @upload_avatar.mapping.delete
+    def delete_avatar(self, request):
+        """
+        Удаляет аватар пользователя.
+        """
+        user = request.user
+        if user.avatar:
+            user.avatar.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {'detail': 'Аватар отсутствует.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     @action(
         detail=True, methods=['post', 'delete'],
@@ -247,21 +252,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
         ):
             if is_in_shopping_cart == '1':
                 queryset = queryset.filter(
-                    in_shopping_cart__user=self.request.user
+                    shoppingcart_by_users__user=self.request.user
                 )
             elif is_in_shopping_cart == '0':
                 queryset = queryset.exclude(
-                    in_shopping_cart__user=self.request.user
+                    shoppingcart_by_users__user=self.request.user
                 )
         is_favorited = self.request.query_params.get('is_favorited')
         if is_favorited is not None and self.request.user.is_authenticated:
             if is_favorited == '1':
                 queryset = queryset.filter(
-                    favorited_by__user=self.request.user
+                    favorite_by_users__user=self.request.user
                 )
             elif is_favorited == '0':
                 queryset = queryset.exclude(
-                    favorited_by__user=self.request.user
+                    favorite_by_users__user=self.request.user
                 )
         return queryset
 
@@ -321,7 +326,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if request.method == 'POST':
             if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
                 return Response(
-                    {'detail': 'Recipe already in cart'},
+                    {'detail': 'Рецепт уже в корзине'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             ShoppingCart.objects.create(user=user, recipe=recipe)
@@ -336,12 +341,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
             ).first()
             if not cart_item:
                 return Response(
-                    {'detail': 'Recipe is not in the shopping cart'},
+                    {'detail': 'Рецепта нет в корзине'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             cart_item.delete()
             return Response(
-                {'detail': 'Recipe removed from cart'},
+                {'detail': 'Рецепт удален из корзины'},
                 status=status.HTTP_204_NO_CONTENT
             )
 
@@ -458,7 +463,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if request.method == 'POST':
             if Favorite.objects.filter(user=user, recipe=recipe).exists():
                 return Response(
-                    {'detail': 'Recipe already in favorites'},
+                    {'detail': 'Рецепт уже в избранном'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             Favorite.objects.create(user=user, recipe=recipe)
@@ -474,11 +479,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
             ).first()
             if not favorite:
                 return Response(
-                    {'detail': 'Recipe is not in favorites'},
+                    {'detail': 'Рецепта нет в избранном'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             favorite.delete()
             return Response(
-                {'detail': 'Recipe removed from favorites'},
+                {'detail': 'Рецепт удален из избранного'},
                 status=status.HTTP_204_NO_CONTENT
             )

@@ -1,6 +1,17 @@
-from djoser.serializers import UserSerializer
 from rest_framework import serializers
-from users.models import Follow, MyUser
+from djoser.serializers import UserSerializer
+
+from users.models import User
+from recipes.models import Recipe
+
+
+class RecipeShortSerializer(serializers.ModelSerializer):
+    """
+    Короткий сериализатор для отображения рецептов в подписках.
+    """
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
 
 
 class CustomUserSerializer(UserSerializer):
@@ -8,10 +19,9 @@ class CustomUserSerializer(UserSerializer):
     Сериализатор пользователя с полями для подписки и аватара.
     """
     is_subscribed = serializers.SerializerMethodField()
-    avatar = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
-        model = MyUser
+        model = User
         fields = ('id', 'username', 'first_name', 'last_name',
                   'email', 'is_subscribed', 'avatar')
 
@@ -22,16 +32,8 @@ class CustomUserSerializer(UserSerializer):
         user = self.context.get('request').user
         return (
             user.is_authenticated
-            and obj.follower.filter(user=user, following=obj).exists()
+            and user.followers.filter(following=obj).exists()
         )
-
-    def get_avatar(self, obj):
-        """
-        Возвращает URL аватара пользователя или None.
-        """
-        if obj.avatar:
-            return obj.avatar.url
-        return None
 
 
 class FollowSerializer(CustomUserSerializer):
@@ -41,47 +43,29 @@ class FollowSerializer(CustomUserSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.ReadOnlyField(source='recipes.count')
 
-    class Meta(UserSerializer.Meta):
-        fields = (
-            'email', 'id', 'username', 'first_name', 'last_name',
-            'is_subscribed', 'avatar', 'recipes', 'recipes_count'
+    class Meta(CustomUserSerializer.Meta):
+        fields = tuple(CustomUserSerializer.Meta.fields) + (
+            'recipes',
+            'recipes_count'
         )
 
     def get_recipes(self, obj):
         """
-        Возвращает рецепты пользователя, ограниченные по количеству.
+        Возвращает ограниченный список рецептов пользователя.
         """
         request = self.context.get('request')
-        recipes_limit = request.query_params.get(
-            'recipes_limit'
-        ) if request else None
+        recipes_limit = request.query_params.get('recipes_limit')
         recipes = obj.recipes.all()
         if recipes_limit and recipes_limit.isdigit():
             recipes = recipes[:int(recipes_limit)]
-        return [
-            {
-                'id': recipe.id,
-                'name': recipe.name,
-                'image': recipe.image.url if recipe.image else None,
-                'cooking_time': recipe.cooking_time,
-            }
-            for recipe in recipes
-        ]
+        return RecipeShortSerializer(
+            recipes,
+            many=True,
+            context=self.context
+        ).data
 
     def get_is_subscribed(self, obj):
         """
-        Проверяет, подписан ли текущий пользователь на obj.
+        Наследует логику проверки подписки.
         """
-        user = self.context.get('request').user
-        return (
-            user.is_authenticated
-            and Follow.objects.filter(user=user, following=obj).exists()
-        )
-
-    def get_avatar(self, obj):
-        """
-        Возвращает URL аватара пользователя или None.
-        """
-        if obj.avatar:
-            return obj.avatar.url
-        return None
+        return super().get_is_subscribed(obj)

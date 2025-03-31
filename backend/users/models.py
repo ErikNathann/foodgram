@@ -1,24 +1,44 @@
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.exceptions import ValidationError
 from django.db import models
 
+from core.constants import (USERNAME_MAX_LENGTH, EMAIL_MAX_LENGTH,
+                            FIRST_NAME_MAX_LENGTH, LAST_NAME_MAX_LENGTH)
 
-class MyUser(AbstractUser):
-    """Кастомная модель пользователя."""
+
+def validate_username(value):
+    """Запрещает использование 'me' в качестве имени пользователя."""
+    if value.lower() == 'me':
+        raise ValidationError(
+            "Использовать 'me' в качестве имени пользователя запрещено."
+        )
+    return value
+
+
+class User(AbstractUser):
+    """Модель пользователя проекта."""
     username_validator = UnicodeUsernameValidator()
 
     email = models.EmailField(
         unique=True,
+        max_length=EMAIL_MAX_LENGTH,
         verbose_name='Адрес электронной почты'
     )
     username = models.CharField(
-        max_length=150,
+        max_length=USERNAME_MAX_LENGTH,
         unique=True,
         verbose_name='Имя пользователя',
-        validators=[username_validator],
+        validators=[username_validator, validate_username],
     )
-    first_name = models.CharField(max_length=150, verbose_name='Имя')
-    last_name = models.CharField(max_length=150, verbose_name='Фамилия')
+    first_name = models.CharField(
+        max_length=FIRST_NAME_MAX_LENGTH,
+        verbose_name='Имя'
+    )
+    last_name = models.CharField(
+        max_length=LAST_NAME_MAX_LENGTH,
+        verbose_name='Фамилия'
+    )
     avatar = models.ImageField(
         upload_to='avatars/',
         blank=True,
@@ -26,26 +46,13 @@ class MyUser(AbstractUser):
         default='frontend/src/images/userpic-icon.jpg',
         verbose_name='Аватар'
     )
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
-    groups = models.ManyToManyField(
-        'auth.Group',
-        related_name='custom_user_groups',
-        blank=True
-    )
-    user_permissions = models.ManyToManyField(
-        'auth.Permission',
-        related_name='custom_user_permissions',
-        blank=True
-    )
-    is_subscribed = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-
-    def __str__(self):
-        return self.username
 
 
 class Follow(models.Model):
@@ -53,13 +60,13 @@ class Follow(models.Model):
     Модель подписки, которая определяет отношение между подписчиком и автором.
     """
     user = models.ForeignKey(
-        MyUser,
+        User,
         verbose_name='Подписчик',
         on_delete=models.CASCADE,
-        related_name='follower',
+        related_name='followers',
     )
     following = models.ForeignKey(
-        MyUser,
+        User,
         verbose_name='Автор',
         on_delete=models.CASCADE,
         related_name='following',
@@ -73,6 +80,10 @@ class Follow(models.Model):
             models.UniqueConstraint(
                 fields=['user', 'following'],
                 name='unique_user_following',
+            ),
+            models.CheckConstraint(
+                check=~models.Q(user=models.F('following')),
+                name='prevent_self_follow',
             )
         ]
 

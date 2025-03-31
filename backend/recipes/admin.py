@@ -1,7 +1,8 @@
 from django.contrib import admin
 
-from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                     ShoppingCart, Subscription, Tag)
+from .models import (
+    Favorite, Ingredient, Recipe, RecipeIngredient, ShoppingCart, Tag
+)
 
 
 @admin.register(Tag)
@@ -9,8 +10,6 @@ class TagAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'slug')
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
-    verbose_name = ('Тег',)
-    verbose_name_plural = ('Теги',)
 
 
 @admin.register(Ingredient)
@@ -18,8 +17,6 @@ class IngredientAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'measurement_unit')
     search_fields = ('name',)
     list_filter = ('name',)
-    verbose_name = ('Ингредиент',)
-    verbose_name_plural = ('Ингредиенты',)
 
 
 class RecipeIngredientInline(admin.TabularInline):
@@ -31,34 +28,24 @@ class RecipeIngredientInline(admin.TabularInline):
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'author', 'cooking_time')
+    list_display = ('id', 'name', 'author', 'cooking_time', 'favorites_count')
     search_fields = ('name', 'author__username')
-    list_filter = ('tags',)
+    filter_horizontal = ('tags',)
     inlines = (RecipeIngredientInline,)
-    verbose_name = ('Рецепт',)
-    verbose_name_plural = ('Рецепты',)
 
+    def favorites_count(self, obj):
+        return obj.favorite_set.count()
 
-@admin.register(Subscription)
-class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'author')
-    search_fields = ('user__username', 'author__username')
-    list_filter = ('user',)
-    verbose_name = ('Подписка',)
-    verbose_name_plural = ('Подписки',)
+    favorites_count.short_description = 'Количество в избранном'
 
 
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe')
     search_fields = ('user__username', 'recipe__name')
-    verbose_name = ('Избранное',)
-    verbose_name_plural = ('Избранные рецепты',)
 
 
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe')
     search_fields = ('user__username', 'recipe__name')
-    verbose_name = ('Корзина покупок',)
-    verbose_name_plural = ('Корзины покупок',)
