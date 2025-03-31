@@ -3,6 +3,8 @@ import csv
 import uuid
 from io import StringIO
 
+from core.paginations import CustomPagination
+from core.permissions import IsAuthorOrReadOnly
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
@@ -14,8 +16,6 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from core.paginations import CustomPagination
-from core.permissions import IsAuthorOrReadOnly
 from users.models import Follow
 from users.serializers import CustomUserSerializer, FollowSerializer
 
