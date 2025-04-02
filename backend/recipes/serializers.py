@@ -1,8 +1,8 @@
-from core.fields import Base64ImageField
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from users.models import Follow
-from users.serializers import CustomUserSerializer
+
+from core.fields import Base64ImageField
+from users.serializers import UserSerializer
 
 from .models import Ingredient, Recipe, RecipeIngredient, Tag
 
@@ -24,7 +24,10 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class IngredientAmountSerializer(serializers.ModelSerializer):
-    """Сериализатор для ингредиентов с указанием их количества."""
+    """
+    Сериализатор для ингредиентов с указанием их количества.
+    Используется для создания рецептов.
+    """
     id = serializers.PrimaryKeyRelatedField(
         queryset=Ingredient.objects.all()
     )
@@ -35,14 +38,34 @@ class IngredientAmountSerializer(serializers.ModelSerializer):
         fields = ('id', 'amount')
 
 
+class RecipeIngredientSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для отображения ингредиентов в рецептах.
+    """
+
+    id = serializers.ReadOnlyField(source='ingredient.id')
+    name = serializers.ReadOnlyField(source='ingredient.name')
+    measurement_unit = serializers.ReadOnlyField(
+        source='ingredient.measurement_unit'
+    )
+    amount = serializers.IntegerField()
+
+    class Meta:
+        model = RecipeIngredient
+        fields = ('id', 'name', 'measurement_unit', 'amount')
+
+
 class RecipeReadSerializer(serializers.ModelSerializer):
     """Сериализатор для детального отображения рецепта."""
+
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
-    author = CustomUserSerializer()
-    ingredients = serializers.SerializerMethodField()
+    author = UserSerializer()
+    ingredients = RecipeIngredientSerializer(
+        many=True, source='recipe_ingredients'
+    )
     tags = TagSerializer(many=True)
-    image = Base64ImageField()
+    image = serializers.ImageField(use_url=True)
 
     class Meta:
         model = Recipe
@@ -51,22 +74,6 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'is_in_shopping_cart', 'name', 'image', 'text', 'cooking_time'
         )
 
-    def get_author(self, obj):
-        """Получение информации об авторе рецепта."""
-        user = self.context['request'].user
-        is_subscribed = (
-            user.is_authenticated
-            and Follow.objects.filter(user=user, following=obj.author).exists()
-        )
-        return {
-            'id': obj.author.id,
-            'username': obj.author.username,
-            'first_name': obj.author.first_name,
-            'last_name': obj.author.last_name,
-            'email': obj.author.email,
-            'is_subscribed': is_subscribed,
-            'avatar': obj.author.avatar.url if obj.author.avatar else None
-        }
 
     def get_ingredients(self, obj):
         """Получение списка ингредиентов с количеством."""

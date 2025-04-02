@@ -2,11 +2,13 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
+from .models import Follow
+
 User = get_user_model()
 
 
 @admin.register(User)
-class MyUserAdmin(DjangoUserAdmin):
+class UserAdmin(DjangoUserAdmin):
     list_display = (
         'id',
         'email',
@@ -44,3 +46,11 @@ class MyUserAdmin(DjangoUserAdmin):
             ),
         }),
     )
+
+
+@admin.register(Follow)
+class FollowAdmin(admin.ModelAdmin):
+    """Админка для модели подписок."""
+    list_display = ('user', 'following')
+    search_fields = ('user__username', 'following__username')
+    list_filter = ('user', 'following')

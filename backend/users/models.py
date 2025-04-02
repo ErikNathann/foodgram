@@ -1,18 +1,14 @@
-from core.constants import (EMAIL_MAX_LENGTH, FIRST_NAME_MAX_LENGTH,
-                            LAST_NAME_MAX_LENGTH, USERNAME_MAX_LENGTH)
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.core.exceptions import ValidationError
 from django.db import models
 
-
-def validate_username(value):
-    """Запрещает использование 'me' в качестве имени пользователя."""
-    if value.lower() == 'me':
-        raise ValidationError(
-            "Использовать 'me' в качестве имени пользователя запрещено."
-        )
-    return value
+from core.constants import (
+    EMAIL_MAX_LENGTH,
+    FIRST_NAME_MAX_LENGTH,
+    LAST_NAME_MAX_LENGTH,
+    USERNAME_MAX_LENGTH
+)
+from core.validators import validate_username
 
 
 class User(AbstractUser):
@@ -42,7 +38,7 @@ class User(AbstractUser):
         upload_to='avatars/',
         blank=True,
         null=True,
-        default='frontend/src/images/userpic-icon.jpg',
+        default='avatars/userpic-icon.jpg',
         verbose_name='Аватар'
     )
 

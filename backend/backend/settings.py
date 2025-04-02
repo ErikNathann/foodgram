@@ -3,6 +3,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from core.constants import PAGE_SIZE
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -11,27 +13,26 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-default-secret-key')
 
 DEBUG = os.getenv('DEBUG', 'False')
 
-if os.getenv('ALLOWED_HOSTS') == 1:
-    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
-else:
-    ALLOWED_HOSTS = (
-        'erikfoodgram.zapto.org', 'localhost', '89.169.163.72', '127.0.0.1'
-    )
+ALLOWED_HOSTS = os.getenv(
+    'ALLOWED_HOSTS', 'erikfoodgram.zapto.org,localhost,89.169.163.72,127.0.0.1'
+).split(',')
 
 
 INSTALLED_APPS = [
-    'recipes.apps.RecipesConfig',
-    'users.apps.UsersConfig',
-    'core.apps.CoreConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',
+
+    'core.apps.CoreConfig',
+    'recipes.apps.RecipesConfig',
+    'users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
@@ -113,7 +114,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'collected_static'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -127,16 +128,17 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'core.paginations.CustomPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': PAGE_SIZE,
 }
 
 DJOSER = {
     'LOGIN_FIELD': 'email',
     'SERIALIZERS': {
-        'user': 'users.serializers.CustomUserSerializer',
-        'current_user': 'users.serializers.CustomUserSerializer',
+        'user': 'users.serializers.UserSerializer',
+        'current_user': 'users.serializers.UserSerializer',
     },
     'PERMISSIONS': {
+        'user_create': ['rest_framework.permissions.AllowAny'],
         'user': ['rest_framework.permissions.IsAuthenticated'],
         'user_list': ['rest_framework.permissions.AllowAny'],
     },

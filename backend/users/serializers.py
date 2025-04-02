@@ -1,19 +1,14 @@
-from djoser.serializers import UserSerializer
-from recipes.models import Recipe
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from users.models import User
+from djoser.serializers import UserSerializer as DjoserUserSerializer
+
+from core.fields import Base64ImageField
+from core.serializers import RecipeShortSerializer
+
+User = get_user_model()
 
 
-class RecipeShortSerializer(serializers.ModelSerializer):
-    """
-    Короткий сериализатор для отображения рецептов в подписках.
-    """
-    class Meta:
-        model = Recipe
-        fields = ('id', 'name', 'image', 'cooking_time')
-
-
-class CustomUserSerializer(UserSerializer):
+class UserSerializer(DjoserUserSerializer):
     """
     Сериализатор пользователя с полями для подписки и аватара.
     """
@@ -21,8 +16,15 @@ class CustomUserSerializer(UserSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name',
-                  'email', 'is_subscribed', 'avatar')
+        fields = (
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'is_subscribed',
+            'avatar'
+        )
 
     def get_is_subscribed(self, obj):
         """
@@ -35,15 +37,15 @@ class CustomUserSerializer(UserSerializer):
         )
 
 
-class FollowSerializer(CustomUserSerializer):
+class FollowSerializer(UserSerializer):
     """
     Сериализатор подписки на пользователя с его рецептами.
     """
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.ReadOnlyField(source='recipes.count')
 
-    class Meta(CustomUserSerializer.Meta):
-        fields = tuple(CustomUserSerializer.Meta.fields) + (
+    class Meta(UserSerializer.Meta):
+        fields = tuple(UserSerializer.Meta.fields) + (
             'recipes',
             'recipes_count'
         )
@@ -63,8 +65,16 @@ class FollowSerializer(CustomUserSerializer):
             context=self.context
         ).data
 
-    def get_is_subscribed(self, obj):
-        """
-        Наследует логику проверки подписки.
-        """
-        return super().get_is_subscribed(obj)
+
+class AvatarSerializer(serializers.ModelSerializer):
+    """Сериализатор для работы с аватаром пользователя."""
+    avatar = Base64ImageField(required=True)
+
+    class Meta:
+        model = User
+        fields = ('avatar',)
+
+    def validate_avatar(self, value):
+        if not value:
+            raise serializers.ValidationError("Поле 'avatar' обязательно.")
+        return value
