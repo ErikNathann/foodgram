@@ -1,13 +1,16 @@
+from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.db import models
+from django.core.exceptions import ValidationError
+
+from core.constants import DISALLOWED_USERNAMES
+
 from core.constants import (
     EMAIL_MAX_LENGTH,
     FIRST_NAME_MAX_LENGTH,
     LAST_NAME_MAX_LENGTH,
-    USERNAME_MAX_LENGTH
+    USERNAME_MAX_LENGTH,
 )
-from core.validators import validate_username
-from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.db import models
 
 
 class User(AbstractUser):
@@ -23,7 +26,7 @@ class User(AbstractUser):
         max_length=USERNAME_MAX_LENGTH,
         unique=True,
         verbose_name='Имя пользователя',
-        validators=[username_validator, validate_username],
+        validators=[username_validator],
     )
     first_name = models.CharField(
         max_length=FIRST_NAME_MAX_LENGTH,
@@ -43,6 +46,14 @@ class User(AbstractUser):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+
+    def clean(self):
+        if self.username.lower() in DISALLOWED_USERNAMES:
+            raise ValidationError(
+                f"Имя пользователя '{self.username}' запрещено. "
+                "Пожалуйста, выберите другое имя."
+            )
+        super(User, self).clean()
 
     class Meta:
         verbose_name = 'Пользователь'

@@ -12,6 +12,7 @@ api_v1_patterns = [
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(api_v1_patterns)),
+    path('', include('recipes.urls')),
 ]
 
 if settings.DEBUG:

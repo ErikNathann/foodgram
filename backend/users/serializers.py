@@ -1,8 +1,12 @@
-from core.fields import Base64ImageField
-from core.serializers import RecipeShortSerializer
 from django.contrib.auth import get_user_model
+
 from djoser.serializers import UserSerializer as DjoserUserSerializer
 from rest_framework import serializers
+
+from core.fields import Base64ImageField
+from core.serializers import RecipeShortSerializer
+
+from .models import Follow
 
 User = get_user_model()
 
@@ -77,3 +81,28 @@ class AvatarSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("Поле 'avatar' обязательно.")
         return value
+
+
+class FollowCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Follow
+        fields = ('user', 'following')
+
+    def validate(self, data):
+        user = self.context['request'].user
+        following = data['following']
+        if user == following:
+            raise serializers.ValidationError(
+                "Невозможно подписаться на самого себя."
+            )
+        if Follow.objects.filter(user=user, following=following).exists():
+            raise serializers.ValidationError(
+                "Вы уже подписаны на этого пользователя."
+            )
+        return data
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        following = validated_data['following']
+        follow = Follow.objects.create(user=user, following=following)
+        return follow
