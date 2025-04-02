@@ -1,8 +1,7 @@
+from core.constants import MEASUREMENT_UNIT_MAX_LENGTH, NAME_MAX_LENGTH
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
-
-from core.constants import MEASUREMENT_UNIT_MAX_LENGTH, NAME_MAX_LENGTH
 
 User = get_user_model()
 

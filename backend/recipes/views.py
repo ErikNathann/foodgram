@@ -14,9 +14,14 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from .models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
-from .serializers import (FavoriteSerializer, IngredientSerializer,
-                          RecipeReadSerializer, RecipeWriteSerializer,
-                          ShoppingCartSerializer, TagSerializer)
+from .serializers import (
+    FavoriteSerializer,
+    IngredientSerializer,
+    RecipeReadSerializer,
+    RecipeWriteSerializer,
+    ShoppingCartSerializer,
+    TagSerializer
+)
 
 User = get_user_model()
 BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'

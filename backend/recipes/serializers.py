@@ -1,7 +1,6 @@
+from core.fields import Base64ImageField
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-
-from core.fields import Base64ImageField
 from users.serializers import UserSerializer
 
 from .models import Ingredient, Recipe, RecipeIngredient, Tag

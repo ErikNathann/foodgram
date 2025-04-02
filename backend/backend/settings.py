@@ -1,9 +1,8 @@
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 from core.constants import PAGE_SIZE
+from dotenv import load_dotenv
 
 load_dotenv()
 
