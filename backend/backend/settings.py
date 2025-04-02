@@ -119,6 +119,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
 
+CORS_ALLOWED_ORIGINS = [
+    'https://erikfoodgram.zapto.org',
+]
+
 CSRF_TRUSTED_ORIGINS = [
     'https://erikfoodgram.zapto.org',
 ]
