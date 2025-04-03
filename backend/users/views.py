@@ -85,11 +85,20 @@ class UserViewSet(DjoserUserViewSet):
             'user': request.user.id,
             'following': following_user.id
         }
-        serializer = FollowCreateSerializer(data=data, context={'request': request})
+        serializer = FollowCreateSerializer(
+            data=data,
+            context={'request': request}
+        )
         serializer.is_valid(raise_exception=True)
         follow = serializer.save()
-        response_serializer = FollowSerializer(follow.following, context={'request': request})
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        response_serializer = FollowSerializer(
+            follow.following,
+            context={'request': request}
+        )
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_201_CREATED
+        )
 
     @subscribe.mapping.delete
     def unsubscribe(self, request, id=None):
