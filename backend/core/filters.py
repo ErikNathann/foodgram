@@ -17,19 +17,17 @@ class IngredientFilter(django_filters.FilterSet):
 class RecipeFilter(filters.FilterSet):
     """Фильтрация рецептов по автору, тегам, избранному и списку покупок."""
 
-    author = filters.NumberFilter(field_name='author', lookup_expr='exact')
+    author = filters.NumberFilter()
     tags = filters.ModelMultipleChoiceFilter(
         queryset=Tag.objects.all(),
         field_name='tags__slug',
         to_field_name='slug'
     )
-    is_in_shopping_cart = filters.CharFilter(
-        field_name='shoppingcart_by_users__user',
-        method='filter_shopping_cart'
+    is_in_shopping_cart = filters.BooleanFilter(
+        field_name='shoppingcart_by_users__user', method='filter_shopping_cart'
     )
-    is_favorited = filters.CharFilter(
-        field_name='favorite_by_users__user',
-        method='filter_favorite'
+    is_favorited = filters.BooleanFilter(
+        field_name='favorite_by_users__user', method='filter_favorite'
     )
 
     class Meta:
@@ -37,25 +35,19 @@ class RecipeFilter(filters.FilterSet):
         fields = ['author', 'tags', 'is_in_shopping_cart', 'is_favorited']
 
     def filter_shopping_cart(self, queryset, name, value):
-        if self.request.user.is_authenticated and value is not None:
-            if value == '1':
+        """Фильтрация по наличию в корзине."""
+        if self.request.user.is_authenticated:
+            if value:
                 return queryset.filter(
-                    shoppingcart_by_users__user=self.request.user
-                )
-            elif value == '0':
-                return queryset.exclude(
                     shoppingcart_by_users__user=self.request.user
                 )
         return queryset
 
     def filter_favorite(self, queryset, name, value):
-        if self.request.user.is_authenticated and value is not None:
-            if value == '1':
+        """Фильтрация по избранному."""
+        if self.request.user.is_authenticated:
+            if value:
                 return queryset.filter(
-                    favorite_by_users__user=self.request.user
-                )
-            elif value == '0':
-                return queryset.exclude(
                     favorite_by_users__user=self.request.user
                 )
         return queryset

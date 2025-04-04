@@ -1,3 +1,5 @@
+from collections import Counter
+
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -68,7 +70,6 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         many=True, source='recipe_ingredients'
     )
     tags = TagSerializer(many=True)
-    image = serializers.ImageField()
 
     class Meta:
         model = Recipe
@@ -117,8 +118,9 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
     def _find_double(self, ids):
         """Проверка на дублирующиеся значения."""
-        if len(ids) != len(set(ids)):
-            duplicates = [item for item in set(ids) if ids.count(item) > 1]
+        counter = Counter(ids)
+        duplicates = [item for item, count in counter.items() if count > 1]
+        if duplicates:
             raise serializers.ValidationError(f'Есть дубли: {duplicates}.')
         return ids
 
@@ -188,16 +190,6 @@ class RecipeShortSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
-class FavoriteSerializer(RecipeShortSerializer):
-    """Сериализатор для избранных рецептов."""
-    pass
-
-
-class ShoppingCartSerializer(RecipeShortSerializer):
-    """Сериализатор для списка покупок."""
-    pass
-
-
 class FavoriteCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для добавления рецепта в избранное."""
     class Meta:
@@ -211,6 +203,16 @@ class FavoriteCreateSerializer(serializers.ModelSerializer):
         if Favorite.objects.filter(user=user, recipe=recipe).exists():
             raise serializers.ValidationError('Рецепт уже в избранном.')
         return data
+
+    def to_representation(self, instance):
+        """Возвращаем нужный формат для рецепта в избранном."""
+        recipe = instance.recipe
+        return {
+            "id": recipe.id,
+            "name": recipe.name,
+            "image": recipe.image.url if recipe.image else None,
+            "cooking_time": recipe.cooking_time
+        }
 
 
 class ShoppingCartCreateSerializer(serializers.ModelSerializer):
@@ -226,3 +228,13 @@ class ShoppingCartCreateSerializer(serializers.ModelSerializer):
         if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
             raise serializers.ValidationError('Рецепт уже в корзине.')
         return data
+
+    def to_representation(self, instance):
+        """Возвращаем нужный формат для рецепта в корзине."""
+        recipe = instance.recipe
+        return {
+            "id": recipe.id,
+            "name": recipe.name,
+            "image": recipe.image.url if recipe.image else None,
+            "cooking_time": recipe.cooking_time
+        }

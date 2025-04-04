@@ -1,9 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
-from django.http import HttpResponse
-from django.shortcuts import redirect
+from django.http import HttpResponseRedirect
+from django.views import View
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import permissions, status, viewsets, views
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
@@ -12,11 +12,10 @@ from core.fields import Base62Field
 from core.filters import IngredientFilter, RecipeFilter
 from core.paginations import CustomPagination
 from core.permissions import IsAuthorOrReadOnly
-from core.utils import FileFactory
+from core.utils import FileFactory, FileResponseFactory
 
 from .models import Ingredient, Recipe, ShoppingCart, Tag, Favorite
 from .serializers import (
-    RecipeShortSerializer,
     IngredientSerializer,
     RecipeReadSerializer,
     RecipeWriteSerializer,
@@ -74,10 +73,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeWriteSerializer
         return RecipeReadSerializer
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        return queryset
-
     def perform_create(self, serializer):
         """Сохраняет рецепт, связывая его с текущим пользователем."""
         serializer.save(author=self.request.user)
@@ -94,57 +89,48 @@ class RecipeViewSet(viewsets.ModelViewSet):
         short_link = request.build_absolute_uri(f'/s/{short_code}')
         return Response({'short-link': short_link}, status=status.HTTP_200_OK)
 
-    def _handle_favorite_or_cart(self, model, serializer_class, request, pk):
-        """Метод для добавления и удаления рецептов из избранного/корзины."""
+    def add_to_favorite_or_cart(self, model, request, pk):
+        """Метод для добавления рецепта в избранное/корзину."""
         recipe = self.get_object()
         user = request.user
+        if model == Favorite:
+            serializer_class = FavoriteCreateSerializer
+        else:
+            serializer_class = ShoppingCartCreateSerializer
+        serializer = serializer_class(
+            data={'user': user.id, 'recipe': recipe.id},
+            context=self.get_serializer_context()
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        if request.method == 'POST':
-            if model.objects.filter(user=user, recipe=recipe).exists():
-                return Response(
-                    {'detail': 'Рецепт уже добавлен'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            serializer = serializer_class(
-                data={'user': user.id, 'recipe': recipe.id},
-                context={'request': request}
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-
+    def remove_from_favorite_or_cart(self, model, request, pk):
+        """Метод для удаления рецепта из избранного/корзины."""
+        recipe = self.get_object()
+        user = request.user
+        if model.objects.filter(user=user, recipe=recipe).delete()[0]:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
             return Response(
-                RecipeShortSerializer(recipe).data,
-                status=status.HTTP_201_CREATED
-            )
-
-        elif request.method == 'DELETE':
-            obj = model.objects.filter(user=user, recipe=recipe).first()
-            if not obj:
-                return Response(
-                    {'detail': 'Рецепт не найден'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            obj.delete()
-            return Response(
-                {'detail': 'Рецепт удалён'},
-                status=status.HTTP_204_NO_CONTENT
+                {'detail': 'Рецепт не найден в избранном или корзине.'},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
-        permission_classes=[permissions.IsAuthenticated]
+        methods=['post'],
+        permission_classes=[permissions.IsAuthenticated],
+        url_path='shopping_cart'
     )
-    def shopping_cart(self, request, pk=None):
-        """Добавить или удалить рецепт из корзины."""
-        return self._handle_favorite_or_cart(
-            ShoppingCart,
-            ShoppingCartCreateSerializer,
-            request,
-            pk
-        )
+    def add_to_shopping_cart(self, request, pk=None):
+        """Добавить рецепт из корзины."""
+        return self.add_to_favorite_or_cart(ShoppingCart, request, pk)
+
+    @add_to_shopping_cart.mapping.delete
+    def remove_from_shopping_cart(self, request, pk=None):
+        """Удалить рецепт из коризны."""
+        return self.remove_from_favorite_or_cart(ShoppingCart, request, pk)
 
     @action(
         detail=False,
@@ -159,7 +145,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if not shopping_cart_items:
             return Response(
                 {'detail': 'Shopping cart is empty'},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_200_OK
             )
         ingredients = shopping_cart_items.values(
             'recipe__recipe_ingredients__ingredient__name'
@@ -169,49 +155,29 @@ class RecipeViewSet(viewsets.ModelViewSet):
             'recipe__recipe_ingredients__ingredient__name'
         )
         file_format = request.query_params.get('format', 'csv').lower()
-        file_creator = FileFactory(ingredients, file_format)
-        file_data = file_creator.create_file()
-        if file_format == 'csv':
-            response = HttpResponse(file_data, content_type='text/csv')
-            response[
-                'Content-Disposition'
-            ] = 'attachment; filename="shopping_cart.csv"'
-        elif file_format == 'txt':
-            response = HttpResponse(file_data, content_type='text/plain')
-            response[
-                'Content-Disposition'
-            ] = 'attachment; filename="shopping_cart.txt"'
-        elif file_format == 'pdf':
-            response = HttpResponse(file_data, content_type='application/pdf')
-            response[
-                'Content-Disposition'
-            ] = 'attachment; filename="shopping_cart.pdf"'
-        else:
-            return Response(
-                {'detail': 'Unsupported file format'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        return response
+        file_creator = FileFactory.create_file(ingredients, file_format)
+        return FileResponseFactory.create_response(file_creator, file_format)
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
-        permission_classes=[permissions.IsAuthenticated]
+        methods=['post'],
+        permission_classes=[permissions.IsAuthenticated],
+        url_path='favorite'
     )
-    def favorite(self, request, pk=None):
-        """Добавить или удалить рецепт из избранного."""
-        return self._handle_favorite_or_cart(
-            Favorite,
-            FavoriteCreateSerializer,
-            request,
-            pk
-        )
+    def add_to_favorite(self, request, pk=None):
+        """Добавить рецепт в избранное."""
+        return self.add_to_favorite_or_cart(Favorite, request, pk)
+
+    @add_to_favorite.mapping.delete
+    def remove_from_favorite(self, request, pk=None):
+        """Удалить рецепт из избранного."""
+        return self.remove_from_favorite_or_cart(Favorite, request, pk)
 
 
-class RecipeRedirectView(views.APIView):
+class RecipeRedirectView(View):
     """Перенаправление на полный рецепт по короткому коду."""
 
-    def get(self, request, short_code):
+    def get(self, short_code):
         try:
             recipe_id = Base62Field.from_base62(short_code)
         except ValueError:
@@ -219,6 +185,5 @@ class RecipeRedirectView(views.APIView):
                 {'detail': 'Неверный короткий код.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
         recipe = get_object_or_404(Recipe, id=recipe_id)
-        return redirect(f'/recipes/{recipe.id}/')
+        return HttpResponseRedirect(f'/recipes/{recipe.id}/')

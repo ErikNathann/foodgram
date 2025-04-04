@@ -22,6 +22,7 @@ User = get_user_model()
 class UserViewSet(DjoserUserViewSet):
     """
     ViewSet для работы с пользователями.
+
     Включает методы для получения и изменения информации о пользователе.
     """
     queryset = User.objects.all().order_by('username')
@@ -37,6 +38,7 @@ class UserViewSet(DjoserUserViewSet):
     def me(self, request):
         """
         Возвращает информацию о текущем пользователе.
+
         Если пользователь не авторизован, вернет 401.
         """
         return Response(
@@ -77,28 +79,15 @@ class UserViewSet(DjoserUserViewSet):
         url_path='subscribe'
     )
     def subscribe(self, request, id=None):
-        """
-        Подписка на пользователя.
-        """
+        """Подписка на пользователя."""
         following_user = get_object_or_404(User, pk=id)
-        data = {
-            'user': request.user.id,
-            'following': following_user.id
-        }
         serializer = FollowCreateSerializer(
-            data=data,
-            context={'request': request}
+            data={'following': following_user.id},
+            context=self.get_serializer_context()
         )
         serializer.is_valid(raise_exception=True)
-        follow = serializer.save()
-        response_serializer = FollowSerializer(
-            follow.following,
-            context={'request': request}
-        )
-        return Response(
-            response_serializer.data,
-            status=status.HTTP_201_CREATED
-        )
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @subscribe.mapping.delete
     def unsubscribe(self, request, id=None):
@@ -106,16 +95,16 @@ class UserViewSet(DjoserUserViewSet):
         Отписка от пользователя.
         """
         following_user = get_object_or_404(User, pk=id)
-        deleted, _ = Follow.objects.filter(
+        if Follow.objects.filter(
             user=request.user,
             following=following_user
-        ).delete()
-        if deleted == 0:
+        ).delete()[0]:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
             return Response(
                 {'detail': 'Вы не подписаны на этого пользователя.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):
         if self.action == 'subscriptions':
@@ -137,5 +126,4 @@ class UserViewSet(DjoserUserViewSet):
         """
         Получить список подписок текущего пользователя.
         """
-        self.action = 'subscriptions'
         return self.list(request, *args, **kwargs)
