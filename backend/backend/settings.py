@@ -120,12 +120,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
 
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
 CORS_ALLOWED_ORIGINS = [
     'https://erikfoodgram.zapto.org',
+    'http://erikfoodgram.zapto.org',
+
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     'https://erikfoodgram.zapto.org',
+    'http://erikfoodgram.zapto.org',
 ]
 
 REST_FRAMEWORK = {
