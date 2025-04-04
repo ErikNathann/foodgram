@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import HttpResponseRedirect
 from django.views import View
-from django.shortcuts import redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
