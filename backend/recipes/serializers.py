@@ -206,13 +206,9 @@ class FavoriteCreateSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """Возвращаем нужный формат для рецепта в избранном."""
-        recipe = instance.recipe
-        return {
-            "id": recipe.id,
-            "name": recipe.name,
-            "image": recipe.image.url if recipe.image else None,
-            "cooking_time": recipe.cooking_time
-        }
+        return RecipeShortSerializer(
+            instance.recipe, context=self.context
+        ).data
 
 
 class ShoppingCartCreateSerializer(serializers.ModelSerializer):
@@ -231,10 +227,7 @@ class ShoppingCartCreateSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """Возвращаем нужный формат для рецепта в корзине."""
-        recipe = instance.recipe
-        return {
-            "id": recipe.id,
-            "name": recipe.name,
-            "image": recipe.image.url if recipe.image else None,
-            "cooking_time": recipe.cooking_time
-        }
+        return RecipeShortSerializer(
+            instance.recipe,
+            context=self.context
+        ).data

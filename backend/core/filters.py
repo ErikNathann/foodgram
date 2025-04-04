@@ -17,7 +17,6 @@ class IngredientFilter(django_filters.FilterSet):
 class RecipeFilter(filters.FilterSet):
     """Фильтрация рецептов по автору, тегам, избранному и списку покупок."""
 
-    author = filters.NumberFilter()
     tags = filters.ModelMultipleChoiceFilter(
         queryset=Tag.objects.all(),
         field_name='tags__slug',
@@ -36,11 +35,10 @@ class RecipeFilter(filters.FilterSet):
 
     def filter_shopping_cart(self, queryset, name, value):
         """Фильтрация по наличию в корзине."""
-        if self.request.user.is_authenticated:
-            if value:
-                return queryset.filter(
-                    shoppingcart_by_users__user=self.request.user
-                )
+        if self.request.user.is_authenticated and value:
+            return queryset.filter(
+                shoppingcart_by_users__user=self.request.user
+            )
         return queryset
 
     def filter_favorite(self, queryset, name, value):

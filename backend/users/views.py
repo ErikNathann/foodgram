@@ -82,7 +82,10 @@ class UserViewSet(DjoserUserViewSet):
         """Подписка на пользователя."""
         following_user = get_object_or_404(User, pk=id)
         serializer = FollowCreateSerializer(
-            data={'following': following_user.id},
+            data={
+                'user': request.user.id,
+                'following': following_user.id
+            },
             context=self.get_serializer_context()
         )
         serializer.is_valid(raise_exception=True)
@@ -100,11 +103,10 @@ class UserViewSet(DjoserUserViewSet):
             following=following_user
         ).delete()[0]:
             return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(
-                {'detail': 'Вы не подписаны на этого пользователя.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        return Response(
+            {'detail': 'Вы не подписаны на этого пользователя.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     def get_queryset(self):
         if self.action == 'subscriptions':

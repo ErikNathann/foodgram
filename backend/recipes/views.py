@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import HttpResponseRedirect
 from django.views import View
+from django.shortcuts import redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -78,7 +79,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
     @action(
-        detail=True, methods=['get'],
+        detail=True,
+        methods=['get'],
         url_path='get-link',
         permission_classes=[permissions.AllowAny]
     )
@@ -86,17 +88,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Получить короткую ссылку на рецепт."""
         recipe = self.get_object()
         short_code = Base62Field.to_base62(recipe.id)
-        short_link = request.build_absolute_uri(f'/s/{short_code}')
+        short_link = request.build_absolute_uri(f'/r/{short_code}')
         return Response({'short-link': short_link}, status=status.HTTP_200_OK)
 
-    def add_to_favorite_or_cart(self, model, request, pk):
+    def add_to_favorite_or_cart(self, serializer_class, pk):
         """Метод для добавления рецепта в избранное/корзину."""
         recipe = self.get_object()
-        user = request.user
-        if model == Favorite:
-            serializer_class = FavoriteCreateSerializer
-        else:
-            serializer_class = ShoppingCartCreateSerializer
+        user = self.request.user
         serializer = serializer_class(
             data={'user': user.id, 'recipe': recipe.id},
             context=self.get_serializer_context()
@@ -105,17 +103,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def remove_from_favorite_or_cart(self, model, request, pk):
+    def remove_from_favorite_or_cart(self, model, pk):
         """Метод для удаления рецепта из избранного/корзины."""
         recipe = self.get_object()
-        user = request.user
+        user = self.request.user
         if model.objects.filter(user=user, recipe=recipe).delete()[0]:
             return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(
-                {'detail': 'Рецепт не найден в избранном или корзине.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        return Response(
+            {'detail': 'Рецепт не найден в избранном или корзине.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     @action(
         detail=True,
@@ -125,12 +122,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def add_to_shopping_cart(self, request, pk=None):
         """Добавить рецепт из корзины."""
-        return self.add_to_favorite_or_cart(ShoppingCart, request, pk)
+        return self.add_to_favorite_or_cart(ShoppingCartCreateSerializer, pk)
 
     @add_to_shopping_cart.mapping.delete
     def remove_from_shopping_cart(self, request, pk=None):
         """Удалить рецепт из коризны."""
-        return self.remove_from_favorite_or_cart(ShoppingCart, request, pk)
+        return self.remove_from_favorite_or_cart(ShoppingCart, pk)
 
     @action(
         detail=False,
@@ -166,12 +163,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def add_to_favorite(self, request, pk=None):
         """Добавить рецепт в избранное."""
-        return self.add_to_favorite_or_cart(Favorite, request, pk)
+        return self.add_to_favorite_or_cart(FavoriteCreateSerializer, pk)
 
     @add_to_favorite.mapping.delete
     def remove_from_favorite(self, request, pk=None):
         """Удалить рецепт из избранного."""
-        return self.remove_from_favorite_or_cart(Favorite, request, pk)
+        return self.remove_from_favorite_or_cart(Favorite, pk)
 
 
 class RecipeRedirectView(View):
