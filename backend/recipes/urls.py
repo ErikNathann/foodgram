@@ -16,7 +16,7 @@ router.register(r'recipes', RecipeViewSet, basename='recipes')
 urlpatterns = [
     path('', include(router.urls)),
     path(
-        'r/<str:short_code>/',
+        's/<str:short_code>/',
         RecipeRedirectView.as_view(),
         name='recipe_redirect'
     ),

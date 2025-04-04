@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.views import View
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status, viewsets
@@ -87,7 +87,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Получить короткую ссылку на рецепт."""
         recipe = self.get_object()
         short_code = Base62Field.to_base62(recipe.id)
-        short_link = request.build_absolute_uri(f'/r/{short_code}')
+        short_link = request.build_absolute_uri(f'/s/{short_code}')
         return Response({'short-link': short_link}, status=status.HTTP_200_OK)
 
     def add_to_favorite_or_cart(self, serializer_class, pk):
@@ -173,13 +173,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
 class RecipeRedirectView(View):
     """Перенаправление на полный рецепт по короткому коду."""
 
-    def get(self, short_code):
+    def get(self, request, *args, **kwargs):
+        short_code = kwargs.get('short_code')
         try:
             recipe_id = Base62Field.from_base62(short_code)
         except ValueError:
-            return Response(
-                {'detail': 'Неверный короткий код.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return HttpResponse("Неверный короткий код.", status=400)
         recipe = get_object_or_404(Recipe, id=recipe_id)
         return HttpResponseRedirect(f'/recipes/{recipe.id}/')
