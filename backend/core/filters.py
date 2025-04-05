@@ -43,9 +43,8 @@ class RecipeFilter(filters.FilterSet):
 
     def filter_favorite(self, queryset, name, value):
         """Фильтрация по избранному."""
-        if self.request.user.is_authenticated:
-            if value:
-                return queryset.filter(
-                    favorite_by_users__user=self.request.user
-                )
+        if self.request.user.is_authenticated and value:
+            return queryset.filter(
+                favorite_by_users__user=self.request.user
+            )
         return queryset

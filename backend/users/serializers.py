@@ -45,7 +45,7 @@ class FollowSerializer(UserSerializer):
     Сериализатор подписки на пользователя с его рецептами.
     """
     recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.ReadOnlyField(source='recipes.count')
+    recipes_count = serializers.IntegerField(read_only=True)
 
     class Meta(UserSerializer.Meta):
         fields = tuple(UserSerializer.Meta.fields) + (
@@ -103,8 +103,7 @@ class FollowCreateSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """Возвращаем подписанного пользователя в нужном формате."""
-        user_data = FollowSerializer(
+        return FollowSerializer(
             instance.following,
             context=self.context
         ).data
-        return user_data

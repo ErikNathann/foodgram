@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Count
 
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import permissions, status
@@ -110,7 +111,11 @@ class UserViewSet(DjoserUserViewSet):
 
     def get_queryset(self):
         if self.action == 'subscriptions':
-            return User.objects.filter(following__user=self.request.user)
+            return User.objects.filter(
+                following__user=self.request.user
+            ).annotate(
+                recipes_count=Count('recipes')
+            )
         return super().get_queryset()
 
     def get_serializer_class(self):
