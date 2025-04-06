@@ -13,21 +13,22 @@ services:
     image: eriknathann/foodgram_backend
     env_file: .env
     volumes:
-      - static_volume:/backend_static/
-      - media_volume:/backend/media/
+      - static_volume:/static
+      - media_volume:/app/media
     depends_on:
       - db
   frontend:
     image: eriknathann/foodgram_frontend
     env_file: .env
+    command: cp -r /app/build/. /static/
     volumes:
-      - static_volume:/frontend_static
+      - static_volume:/static
   gateway:
     image: eriknathann/foodgram_gateway
     env_file: .env
     volumes:
-      - static_volume:/staticfiles/
-      - media_volume:/var/html/media/
+      - static_volume:/static
+      - media_volume:/app/media
       - ./docs/:/usr/share/nginx/html/api/docs/
     restart: always
     ports:
