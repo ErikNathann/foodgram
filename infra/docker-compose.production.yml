@@ -32,7 +32,7 @@ services:
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
       - ../static:/var/html/static/
-      - media_value:/var/html/media/
+      - media_valume:/var/html/media/
     restart: always
     ports:
       - 8000:80
