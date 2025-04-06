@@ -144,12 +144,12 @@ class UserRecipeRelation(models.Model):
 
 
 class Favorite(UserRecipeRelation):
-    class Meta:
+    class Meta(object):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранные рецепты'
 
 
 class ShoppingCart(UserRecipeRelation):
-    class Meta:
+    class Meta(object):
         verbose_name = 'Корзина покупок'
         verbose_name_plural = 'Корзины покупок'

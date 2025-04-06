@@ -27,6 +27,8 @@ class User(AbstractUser):
         unique=True,
         verbose_name='Имя пользователя',
         validators=[username_validator],
+        blank=False,
+        null=False
     )
     first_name = models.CharField(
         max_length=FIRST_NAME_MAX_LENGTH,
@@ -48,7 +50,7 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     def clean(self):
-        if self.username.lower() in DISALLOWED_USERNAMES:
+        if self.username and self.username.lower() in DISALLOWED_USERNAMES:
             raise ValidationError(
                 f"Имя пользователя '{self.username}' запрещено. "
                 "Пожалуйста, выберите другое имя."
