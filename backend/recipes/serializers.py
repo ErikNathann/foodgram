@@ -198,11 +198,15 @@ class FavoriteCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Проверяет, не добавлен ли рецепт уже в избранное."""
-        user = data['user']
+        user = self.context['request'].user
         recipe = data['recipe']
         if Favorite.objects.filter(user=user, recipe=recipe).exists():
             raise serializers.ValidationError('Рецепт уже в избранном.')
         return data
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return Favorite.objects.create(user=user, **validated_data)
 
     def to_representation(self, instance):
         """Возвращаем нужный формат для рецепта в избранном."""
@@ -219,11 +223,15 @@ class ShoppingCartCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Проверяет, не добавлен ли рецепт уже в корзину."""
-        user = data['user']
+        user = self.context['request'].user
         recipe = data['recipe']
         if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
             raise serializers.ValidationError('Рецепт уже в корзине.')
         return data
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return ShoppingCart.objects.create(user=user, **validated_data)
 
     def to_representation(self, instance):
         """Возвращаем нужный формат для рецепта в корзине."""
