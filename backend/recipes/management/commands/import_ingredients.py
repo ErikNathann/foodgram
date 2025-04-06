@@ -15,21 +15,16 @@ class Command(BaseCommand):
             model(name=name, measurement_unit=measurement_unit)
             for name, measurement_unit in rows
         ]
-
         model.objects.bulk_create(ingredients, ignore_conflicts=True)
-
         return len(rows)
 
     def handle(self, *args, **options):
         csv_path = os.path.join(settings.BASE_DIR, 'data', 'ingredients.csv')
-
         with open(csv_path, encoding='utf8') as csvfile:
             reader = csv.reader(csvfile)
             rows = list(reader)
-
             rows_count = len(rows)
             bulk_count = self.bulk_create_ingredients(Ingredient, rows)
-
         self.stdout.write(
             self.style.SUCCESS(
                 f'Импорт ингредиентов завершился успешно! '
