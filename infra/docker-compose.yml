@@ -17,12 +17,12 @@ services:
     volumes:
       - static:/app/static
       - media:/app/media
-  frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
-    volumes:
-      - ../frontend/:/app/result_build/
+  frontend: 
+    env_file: .env 
+    build: ./frontend/ 
+    command: cp -r /app/build/. /frontend_static/ 
+    volumes: 
+      - static:/frontend_static
   gateway:
     build: ./gateway/
     env_file: .env
