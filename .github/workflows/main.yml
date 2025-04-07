@@ -98,44 +98,15 @@ jobs:
         passphrase: ${{ secrets.SSH_PASSPHRASE }}
         source: "infra/docker-compose.production.yml"
         target: "foodgram"
-    - name: Create docs directory with correct permissions
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USER }}
-        key: ${{ secrets.SSH_KEY }}
-        passphrase: ${{ secrets.SSH_PASSPHRASE }}
-        script: |
-          mkdir -p ~/foodgram/docs
-          chmod 755 ~/foodgram/docs
-    - name: Copy docs folder via scp
+    - name: Copy docs folder via ssh
       uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USER }}
         key: ${{ secrets.SSH_KEY }}
         passphrase: ${{ secrets.SSH_PASSPHRASE }}
-        source: "./docs/"
-        target: "foodgram/"
-    - name: Create docs directory with correct permissions
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USER }}
-        key: ${{ secrets.SSH_KEY }}
-        passphrase: ${{ secrets.SSH_PASSPHRASE }}
-        script: |
-          mkdir -p ~/foodgram/docs
-          chmod 755 ~/foodgram/docs
-    - name: Copy docs folder via scp
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USER }}
-        key: ${{ secrets.SSH_KEY }}
-        passphrase: ${{ secrets.SSH_PASSPHRASE }}
-        source: "./docs/"
-        target: "foodgram/"
+        source: "docs/"
+        target: "foodgram/docs"
     - name: Executing remote ssh commands to deploy
       uses: appleboy/ssh-action@master
       with:
